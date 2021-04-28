@@ -2,8 +2,8 @@
 
 which mpicc
 
-CFLAGS="-O2 -DOUTPUT_ALL_PHASES"
-LDFLAGS="-lopenblas"
+CFLAGS="-O2 -DOUTPUT_ALL_PHASES -I$HOME/local/include"
+LDFLAGS="-L$HOME/local/lib -Wl,-rpath=$HOME/local/lib -lopenblas"
 
 file=$1
 out=$2
