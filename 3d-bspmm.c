@@ -9,7 +9,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <mpi.h>
-#include <mkl.h>
+#include <cblas.h>
+#include <assert.h>
 
 /* This benchmark measures adaptation for the execution contains multiple
  * communication-intensive phases and computation-intensive phases with 3D
@@ -59,14 +60,17 @@ double t_comp = 0.0;
 
 static void target_computation_init(void)
 {
-    int ml;
+    int ml, err;
 
     /* allocate max size with alignment on 64-byte boundary for better performance */
     ml = ML / nprocs;
 
-    A = (double *) mkl_malloc(ml * ml * sizeof(double), 64);
-    B = (double *) mkl_malloc(ml * ml * sizeof(double), 64);
-    C = (double *) mkl_malloc(ml * ml * sizeof(double), 64);
+    err = posix_memalign((void **)&A, 64, ml * ml * sizeof(double));
+    assert(err == 0);
+    err = posix_memalign((void **)&B, 64, ml * ml * sizeof(double));
+    assert(err == 0);
+    err = posix_memalign((void **)&C, 64, ml * ml * sizeof(double));
+    assert(err == 0);
 }
 
 static void target_computation_set_size(int M, int K, int N)
@@ -104,9 +108,9 @@ static void target_computation(void)
 
 static void target_computation_destroy(void)
 {
-    mkl_free(A);
-    mkl_free(B);
-    mkl_free(C);
+    free(A);
+    free(B);
+    free(C);
     A = NULL;
     B = NULL;
     C = NULL;
