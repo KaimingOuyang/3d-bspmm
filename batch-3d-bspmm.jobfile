@@ -1,0 +1,51 @@
+#!/bin/bash -l
+
+#SBATCH -p bdwall
+#SBATCH -N 8
+#SBATCH -t 00:30:00
+
+test_base=./$1 # baseline binary
+test_casper=./$2 # casper binary
+
+iter=1
+
+nn=8
+nh=2
+ppn=36
+let np=$nn*$ppn
+
+let dgemm_ms=64*$np
+let dgemm_ml=1024*$np
+nops=1
+nopl=100
+nwins=4
+nphase=2 # for two phases
+ncoll=10
+
+dlen=512
+sub_dlen=256
+
+export CSP_NG=$nh
+
+function run_test()
+{
+	f=$1
+	export CSP_NG=$nh
+	srun -n $np -N $nn $f $nops $nopl $nopl $nopl $dgemm_ms $dgemm_ml $nwins $nphase $ncoll ${dlen} ${sub_dlen}
+}
+
+t=0	
+export CSP_VERBOSE=1
+while [ $t -lt $iter ];do
+	unset CSP_ASYNC_CONFIG
+	unset CSP_ASYNC_SCHED_LEVEL
+	#origin shm
+	run_test $test_base
+	
+	#user-guide adapt
+	export CSP_ASYNC_CONFIG=on
+	export CSP_ASYNC_SCHED_LEVEL=per-coll
+	run_test $test_casper
+
+	let t+=1
+done

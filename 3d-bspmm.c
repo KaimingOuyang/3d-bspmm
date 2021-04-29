@@ -32,8 +32,11 @@
  * */
 
 
-#define DLEN 4
-#define SUB_DLEN 2
+// #define DLEN 4
+// #define SUB_DLEN 2
+
+int DLEN;
+int SUB_DLEN;
 
 /* 3D matrix on target window */
 #define WINSIZE (DLEN*DLEN*DLEN)
@@ -309,17 +312,22 @@ static int run_iteration()
 #else
         sprintf(header, "orig");
 #endif
-
-        fprintf(stdout,
-                "%s: nprocs %d MS %d %d ML %d %d num_op_s %d num_op_l %d "
-                "nwins %d nphase %d ncoll %d "
-                "total_time %.2lf comp-p %.2lf comm-p %.2lf "
-                "comp-comp %.2lf comp-comm %.2lf\n",
-                header, nprocs, MS, MS / nprocs, ML, ML / nprocs, NOP_S, NOP_L,
-                NWINS, PHASE_ITER, COLL_ITER,
+        // total_time phase1_total phase2_total phase1_compute phase2_compute
+        fprintf(stdout, "%.2lf %.2lf %.2lf %.2lf %.2lf\n",
                 sum_total_times[2],
                 sum_t_comp_phases[2],
                 sum_t_comm_phases[2], sum_t_comp_comps[2], sum_t_comm_comps[2]);
+
+        // fprintf(stdout,
+        //         "%s: nprocs %d MS %d %d ML %d %d num_op_s %d num_op_l %d "
+        //         "nwins %d nphase %d ncoll %d "
+        //         "total_time %.2lf comp-p %.2lf comm-p %.2lf "
+        //         "comp-comp %.2lf comp-comm %.2lf\n",
+        //         header, nprocs, MS, MS / nprocs, ML, ML / nprocs, NOP_S, NOP_L,
+        //         NWINS, PHASE_ITER, COLL_ITER,
+        //         sum_total_times[2],
+        //         sum_t_comp_phases[2],
+        //         sum_t_comm_phases[2], sum_t_comp_comps[2], sum_t_comm_comps[2]);
         fflush(stdout);
 #if defined(OUTPUT_ALL_PHASES)
         fprintf(stdout, "%s-phases: ", header);
@@ -391,6 +399,11 @@ int main(int argc, char *argv[])
 
     if (argc >= 9) {
         COLL_ITER = atoi(argv[9]);
+    }
+
+    if(argc >= 10){
+        DLEN = atoi(argv[10]);
+        SUB_DLEN = atoi(argv[11]);
     }
 
     /* initialize local buffer */
