@@ -35,8 +35,8 @@
 // #define DLEN 4
 // #define SUB_DLEN 2
 
-int DLEN;
-int SUB_DLEN;
+int DLEN = 4;
+int SUB_DLEN = 2;
 
 /* 3D matrix on target window */
 #define WINSIZE (DLEN*DLEN*DLEN)
@@ -49,6 +49,7 @@ int rank = 0, nprocs = 0;
 int shm_rank = 0, shm_nprocs = 0;
 MPI_Win win = MPI_WIN_NULL;
 
+int WOKERS;
 int PHASE_ITER = 10, COLL_ITER = 50, SKIP = 10, NWINS = 2;
 int NOP_L_MAX = 16, NOP_L_MIN = 16, NOP_L_ITER = 2, NOP_S = 1, NOP_L = 1;
 int MS = 1, ML = 100;           /* total problem size */
@@ -202,9 +203,14 @@ static int run_iteration()
             }
 
             for (x = 0; x < COLL_ITER; x += 1) {
-                for (dst = 0; dst < nprocs; dst++) {
+                for (dst = 0; dst < WOKERS; dst++) {
+                    int real_dst;
+                    if(dst >= nprocs)
+                        real_dst = rand() % nprocs;
+                    else
+                        real_dst = dst;
                     for (i = 0; i < nop; i++) {
-                        MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, dst, 0, 1, target_type, win);
+                        MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
                         MPI_Win_flush(dst, win);
                     }
                 }
@@ -212,8 +218,13 @@ static int run_iteration()
                 target_computation();
 
                 for (dst = 0; dst < nprocs; dst++) {
+                    int real_dst;
+                    if(dst >= nprocs)
+                        real_dst = rand() % nprocs;
+                    else
+                        real_dst = dst;
                     for (i = 0; i < nop; i++) {
-                        MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, dst, 0, 1, target_type, MPI_SUM,
+                        MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
                                        win);
                         MPI_Win_flush(dst, win);
                     }
@@ -372,6 +383,8 @@ int main(int argc, char *argv[])
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    WOKERS = nprocs;
+    srand(nprocs);
     // NOP_S NOP_L_MIN NOP_L_MAX NOP_L_ITER MS ML NWINS PHASE_ITER COLL_ITER
     if (nprocs < 2) {
         fprintf(stderr, "Please run using at least two processes\n");
@@ -404,6 +417,10 @@ int main(int argc, char *argv[])
     if(argc >= 10){
         DLEN = atoi(argv[10]);
         SUB_DLEN = atoi(argv[11]);
+    }
+
+    if(argc >= 12){
+        WOKERS = atoi(argv[12]);
     }
 
     /* initialize local buffer */
