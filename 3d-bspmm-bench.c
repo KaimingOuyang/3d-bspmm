@@ -194,16 +194,9 @@ static int run_iteration()
         for (px = 0; px < PHASE_ITER; px += 1) {
             st0 = MPI_Wtime();
 
-            if (px < PHASE_ITER / 2) {  /* heavy comp */
-                target_computation_set_size(ML, ML, ML);
-                nop = NOP_S;
-                comp_pcnt++;
-            }
-            else {      /* heavy comm */
-                target_computation_set_size(MS, MS, MS);
-                nop = NOP_L;
-                comm_pcnt++;
-            }
+            target_computation_set_size(ML, ML, ML);
+            nop = NOP_S;
+            comp_pcnt++;
 
             for (x = 0; x < COLL_ITER; x += 1) {
                 for (dst = 0; dst < WOKERS; dst++) {
@@ -237,27 +230,9 @@ static int run_iteration()
 
             MPI_Barrier(MPI_COMM_WORLD);
 
-#if defined(ENABLE_CSP_ADPT_U)
-            if (px == PHASE_ITER / 2 - 1) {     /* next is heavy comm, update info */
-                MPI_Info_set(async_info, (char *) "async_config", (char *) "off");
-            }
-#endif
-            MPI_Win_set_info(win, async_info);
-
-            if (px < PHASE_ITER / 2) {  /* heavy comp */
-                t_comp_phase += (MPI_Wtime() - st0);
-                t_comp_comp += t_comp;
-                t_comp = 0.0;
-            }
-            else {      /* heavy comm */
-                t_comm_phase += (MPI_Wtime() - st0);
-                t_comm_comp += t_comp;
-                t_comp = 0.0;
-            }
-
-#if defined(OUTPUT_ALL_PHASES)
-            phase_times[phase_idx++] = (MPI_Wtime() - st0);
-#endif
+            t_comp_phase += (MPI_Wtime() - st0);
+            t_comp_comp += t_comp;
+            t_comp = 0.0;
         }
 
         MPI_Win_unlock_all(win);
@@ -328,11 +303,11 @@ static int run_iteration()
         sprintf(header, "orig");
 #endif
         // total_time phase1_total phase2_total phase1_compute phase2_compute
-        fprintf(stdout, "%.2lf %.2lf %.2lf %.2lf %.2lf\n",
-                sum_total_times[2],
-                sum_t_comp_phases[2],
-                sum_t_comm_phases[2], sum_t_comp_comps[2], sum_t_comm_comps[2]);
-
+        // fprintf(stdout, "%.2lf %.2lf %.2lf %.2lf %.2lf\n",
+        //         sum_total_times[2],
+        //         sum_t_comp_phases[2],
+        //         sum_t_comm_phases[2], sum_t_comp_comps[2], sum_t_comm_comps[2]);
+        printf("%d %.3lf %.3lf %.3lf\n", NOP_S, sum_t_comp_phases[2], sum_t_comp_comps[2], sum_t_comp_phases[2] - sum_t_comp_comps[2]);
         // fprintf(stdout,
         //         "%s: nprocs %d MS %d %d ML %d %d num_op_s %d num_op_l %d "
         //         "nwins %d nphase %d ncoll %d "

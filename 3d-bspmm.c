@@ -37,7 +37,7 @@
 
 int DLEN = 4;
 int SUB_DLEN = 2;
-
+int COMPT = 1;
 /* 3D matrix on target window */
 #define WINSIZE (DLEN*DLEN*DLEN)
 /* Local 3D submatrix */
@@ -75,6 +75,16 @@ static void target_computation_init(void)
     assert(err == 0);
     err = posix_memalign((void **)&C, 64, ml * ml * sizeof(double));
     assert(err == 0);
+
+    int i;
+    for (i = 0; i < (ml * ml); i++)
+            A[i] = (double) (i + 1);
+
+    for (i = 0; i < (ml * ml); i++)
+        B[i] = (double) (-i - 1);
+
+    for (i = 0; i < (ml * ml); i++)
+        C[i] = 0.0;
 }
 
 static void target_computation_set_size(int M, int K, int N)
@@ -94,14 +104,7 @@ static void target_computation(void)
 
     if (m > 0 && k > 0 && n > 0) {
         /* reset data */
-        for (i = 0; i < (m * k); i++)
-            A[i] = (double) (i + 1);
-
-        for (i = 0; i < (k * n); i++)
-            B[i] = (double) (-i - 1);
-
-        for (i = 0; i < (m * n); i++)
-            C[i] = 0.0;
+        
 
         cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
                     m, n, k, alpha, A, k, B, n, beta, C, n);
@@ -215,7 +218,8 @@ static int run_iteration()
                     }
                 }
 
-                target_computation();
+                for(i = 0; i< COMPT; ++i)
+                    target_computation();
 
                 for (dst = 0; dst < nprocs; dst++) {
                     int real_dst;
@@ -391,36 +395,40 @@ int main(int argc, char *argv[])
         goto exit;
     }
 
-    if (argc >= 4) {
+    if (argc >= 5) {
         NOP_S = atoi(argv[1]);
         NOP_L_MIN = atoi(argv[2]);
         NOP_L_MAX = atoi(argv[3]);
         NOP_L_ITER = atoi(argv[4]);
     }
-    if (argc >= 6) {
+    if (argc >= 7) {
         MS = atoi(argv[5]);
         ML = atoi(argv[6]);
     }
 
-    if (argc >= 7) {
+    if (argc >= 8) {
         NWINS = atoi(argv[7]);
     }
 
-    if (argc >= 8) {
+    if (argc >= 9) {
         PHASE_ITER = atoi(argv[8]);
     }
 
-    if (argc >= 9) {
+    if (argc >= 10) {
         COLL_ITER = atoi(argv[9]);
     }
 
-    if(argc >= 10){
+    if(argc >= 11){
         DLEN = atoi(argv[10]);
         SUB_DLEN = atoi(argv[11]);
     }
 
-    if(argc >= 12){
+    if(argc >= 13){
         WOKERS = atoi(argv[12]);
+    }
+
+    if(argc >= 14){
+        COMPT = atoi(argv[13]);
     }
 
     /* initialize local buffer */
