@@ -214,7 +214,7 @@ static int run_iteration()
                         real_dst = dst;
                     for (i = 0; i < nop; i++) {
                         MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
-                        MPI_Win_flush(dst, win);
+                        MPI_Win_flush(real_dst, win);
                     }
                 }
 
@@ -230,7 +230,7 @@ static int run_iteration()
                     for (i = 0; i < nop; i++) {
                         MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
                                        win);
-                        MPI_Win_flush(dst, win);
+                        MPI_Win_flush(real_dst, win);
                     }
                 }
             }
