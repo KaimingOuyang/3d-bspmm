@@ -207,7 +207,7 @@ static int run_iteration()
                         real_dst = dst;
                     for (i = 0; i < nop; i++) {
                         MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
-                        MPI_Win_flush(dst, win);
+                        MPI_Win_flush(real_dst, win);
                     }
                 }
 
@@ -223,7 +223,7 @@ static int run_iteration()
                     for (i = 0; i < nop; i++) {
                         MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
                                        win);
-                        MPI_Win_flush(dst, win);
+                        MPI_Win_flush(real_dst, win);
                     }
                 }
             }
@@ -307,7 +307,7 @@ static int run_iteration()
         //         sum_total_times[2],
         //         sum_t_comp_phases[2],
         //         sum_t_comm_phases[2], sum_t_comp_comps[2], sum_t_comm_comps[2]);
-        printf("%d %.3lf %.3lf %.3lf\n", NOP_S, sum_t_comp_phases[2], sum_t_comp_comps[2], sum_t_comp_phases[2] - sum_t_comp_comps[2]);
+        printf("%d %.3lf %.3lf %.3lf\n", ML, sum_t_comp_phases[2], sum_t_comp_comps[2], sum_t_comp_phases[2] - sum_t_comp_comps[2]);
         // fprintf(stdout,
         //         "%s: nprocs %d MS %d %d ML %d %d num_op_s %d num_op_l %d "
         //         "nwins %d nphase %d ncoll %d "
