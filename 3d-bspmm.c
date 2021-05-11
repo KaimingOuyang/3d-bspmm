@@ -142,7 +142,7 @@ static int run_iteration()
     int comp_pcnt = 0, comm_pcnt = 0;
 
     MPI_Comm node_comm;
-    int local_nprocs;
+    int local_nprocs, nnode;
     int mpi_errno = MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, rank, MPI_INFO_NULL, &node_comm);
     if (mpi_errno != MPI_SUCCESS)
     {
@@ -151,7 +151,7 @@ static int run_iteration()
         exit(1);
     }
     MPI_Comm_size(node_comm, &local_nprocs);
-    
+    nnode = nprocs / local_nprocs;
 #if defined(OUTPUT_ALL_PHASES)
     int phase_idx = 0;
     int nphases = NWINS * PHASE_ITER;
@@ -229,7 +229,7 @@ static int run_iteration()
                     if(dst >= nprocs){
                         static int dstnode = 0;
                         real_dst = dstnode * local_nprocs + rand() % local_nprocs;
-                        dstnode += 1;
+                        dstnode = (dstnode + 1) % nnode;
                     }
                     else
                         real_dst = dst;
@@ -250,7 +250,7 @@ static int run_iteration()
                     if(dst >= nprocs){
                         static int dstnode = 0;
                         real_dst = dstnode * local_nprocs + rand() % local_nprocs;
-                        dstnode += 1;
+                        dstnode = (dstnode + 1) % nnode;
                     }
                     else
                         real_dst = dst;
