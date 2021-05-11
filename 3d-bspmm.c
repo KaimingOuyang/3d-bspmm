@@ -12,6 +12,10 @@
 #include <cblas.h>
 #include <assert.h>
 
+#ifndef CORE_PER_NODE
+    #define CORE_PER_NODE 36
+#endif
+
 /* This benchmark measures adaptation for the execution contains multiple
  * communication-intensive phases and computation-intensive phases with 3D
  * non-contigunous double data.
@@ -137,6 +141,17 @@ static int run_iteration()
         sum_t_comm_phases[3];
     int comp_pcnt = 0, comm_pcnt = 0;
 
+    MPI_Comm node_comm;
+    int local_nprocs;
+    int mpi_errno = MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, rank, MPI_INFO_NULL, &node_comm);
+    if (mpi_errno != MPI_SUCCESS)
+    {
+        printf("[%d] MPI_Comm_split_type error, mpi_errno %d\n", __LINE__, mpi_errno);
+        fflush(stdout);
+        exit(1);
+    }
+    MPI_Comm_size(node_comm, &local_nprocs);
+    
 #if defined(OUTPUT_ALL_PHASES)
     int phase_idx = 0;
     int nphases = NWINS * PHASE_ITER;
@@ -208,8 +223,14 @@ static int run_iteration()
             for (x = 0; x < COLL_ITER; x += 1) {
                 for (dst = 0; dst < WOKERS; dst++) {
                     int real_dst;
-                    if(dst >= nprocs)
-                        real_dst = rand() % nprocs;
+                    if(dst >= nprocs){
+                        int dstnode = dst % CORE_PER_NODE;
+                        int real_dstnode;
+                        do {    
+                            real_dst = rand() % nprocs;
+                            real_dstnode = real_dst % local_nprocs;
+                        }while(real_dstnode != dstnode);
+                    }
                     else
                         real_dst = dst;
                     for (i = 0; i < nop; i++) {
@@ -221,10 +242,16 @@ static int run_iteration()
                 for(i = 0; i< COMPT; ++i)
                     target_computation();
 
-                for (dst = 0; dst < nprocs; dst++) {
+                for (dst = 0; dst < WOKERS; dst++) {
                     int real_dst;
-                    if(dst >= nprocs)
-                        real_dst = rand() % nprocs;
+                    if(dst >= nprocs){
+                        int dstnode = dst % CORE_PER_NODE;
+                        int real_dstnode;
+                        do {    
+                            real_dst = rand() % nprocs;
+                            real_dstnode = real_dst % local_nprocs;
+                        }while(real_dstnode != dstnode);
+                    }
                     else
                         real_dst = dst;
                     for (i = 0; i < nop; i++) {
@@ -356,7 +383,7 @@ static int run_iteration()
 
     MPI_Info_free(&win_info);
     MPI_Info_free(&async_info);
-
+    MPI_Comm_free(&node_comm);
 #if defined(OUTPUT_ALL_PHASES)
     free(phase_times);
 #endif
