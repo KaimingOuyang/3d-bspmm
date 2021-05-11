@@ -13,7 +13,7 @@
 #include <assert.h>
 
 #ifndef CORE_PER_NODE
-    #define CORE_PER_NODE 36
+#define CORE_PER_NODE 36
 #endif
 
 /* This benchmark measures adaptation for the execution contains multiple
@@ -82,7 +82,7 @@ static void target_computation_init(void)
 
     int i;
     for (i = 0; i < (ml * ml); i++)
-            A[i] = (double) (i + 1);
+        A[i] = (double) (i + 1);
 
     for (i = 0; i < (ml * ml); i++)
         B[i] = (double) (-i - 1);
@@ -108,7 +108,7 @@ static void target_computation(void)
 
     if (m > 0 && k > 0 && n > 0) {
         /* reset data */
-        
+
 
         cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
                     m, n, k, alpha, A, k, B, n, beta, C, n);
@@ -138,11 +138,11 @@ static int run_iteration()
     double st0 = 0.0, t_comm_phase = 0.0, t_comp_phase = 0.0, t_comm_comp = 0.0, t_comp_comp = 0.0;
     /* min, max, avg */
     double sum_total_times[3], sum_t_comm_comps[3], sum_t_comp_comps[3], sum_t_comp_phases[3],
-        sum_t_comm_phases[3];
+           sum_t_comm_phases[3];
     int comp_pcnt = 0, comm_pcnt = 0;
 
     MPI_Comm node_comm;
-    int local_nprocs, nnode;
+    int local_nprocs, nnode, local_rank;
     int mpi_errno = MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, rank, MPI_INFO_NULL, &node_comm);
     if (mpi_errno != MPI_SUCCESS)
     {
@@ -151,6 +151,7 @@ static int run_iteration()
         exit(1);
     }
     MPI_Comm_size(node_comm, &local_nprocs);
+    MPI_Comm_rank(node_comm, &local_rank);
     nnode = nprocs / local_nprocs;
 #if defined(OUTPUT_ALL_PHASES)
     int phase_idx = 0;
@@ -226,14 +227,14 @@ static int run_iteration()
             for (x = 0; x < COLL_ITER; x += 1) {
                 for (dst = 0; dst < WOKERS; dst++) {
                     int real_dst;
-                    if(dst >= nprocs){
+                    if(dst >= nprocs) {
                         static int dstnode = 0;
                         real_dst = dstnode * local_nprocs + rand() % local_nprocs;
                         dstnode = (dstnode + 1) % nnode;
                     }
                     else
                         real_dst = dst;
-                    
+
                     cur_get_time -= MPI_Wtime();
                     for (i = 0; i < nop; i++) {
                         MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
@@ -242,12 +243,33 @@ static int run_iteration()
                     cur_get_time += MPI_Wtime();
                 }
 
+                /* for casper and async */
+                if(local_rank < (CORE_PER_NODE - local_nprocs)) {
+                    for (dst = 0; dst < WOKERS; dst++) {
+                        int real_dst;
+                        if(dst >= nprocs) {
+                            static int dstnode = 0;
+                            real_dst = dstnode * local_nprocs + rand() % local_nprocs;
+                            dstnode = (dstnode + 1) % nnode;
+                        }
+                        else
+                            real_dst = dst;
+
+                        cur_get_time -= MPI_Wtime();
+                        for (i = 0; i < nop; i++) {
+                            MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
+                            MPI_Win_flush(real_dst, win);
+                        }
+                        cur_get_time += MPI_Wtime();
+                    }
+                }
+
                 for(i = 0; i< COMPT; ++i)
                     target_computation();
 
                 for (dst = 0; dst < WOKERS; dst++) {
                     int real_dst;
-                    if(dst >= nprocs){
+                    if(dst >= nprocs) {
                         static int dstnode = 0;
                         real_dst = dstnode * local_nprocs + rand() % local_nprocs;
                         dstnode = (dstnode + 1) % nnode;
@@ -262,6 +284,28 @@ static int run_iteration()
                         MPI_Win_flush(real_dst, win);
                     }
                     cur_acc_time += MPI_Wtime();
+                }
+
+                /* for casper and async */
+                if(local_rank < (CORE_PER_NODE - local_nprocs)) {
+                    for (dst = 0; dst < WOKERS; dst++) {
+                        int real_dst;
+                        if(dst >= nprocs) {
+                            static int dstnode = 0;
+                            real_dst = dstnode * local_nprocs + rand() % local_nprocs;
+                            dstnode = (dstnode + 1) % nnode;
+                        }
+                        else
+                            real_dst = dst;
+
+                        cur_acc_time -= MPI_Wtime();
+                        for (i = 0; i < nop; i++) {
+                            MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
+                                           win);
+                            MPI_Win_flush(real_dst, win);
+                        }
+                        cur_acc_time += MPI_Wtime();
+                    }
                 }
             }
 
@@ -377,7 +421,7 @@ static int run_iteration()
 #endif
         // total_time phase_total phase_compute phase_comm phase_get phase_acc
         fprintf(stdout, "1 %.3lf %.3lf %.3lf %.3lf %.3lf\n"
-                        "2 %.3lf %.3lf %.3lf %.3lf %.3lf\n",
+                "2 %.3lf %.3lf %.3lf %.3lf %.3lf\n",
                 sum_t_comp_phases[2], sum_t_comp_comps[2], sum_t_comp_phases[2] - sum_t_comp_comps[2], total_get_time_1stage, total_acc_time_1stage,
                 sum_t_comm_phases[2], sum_t_comm_comps[2], sum_t_comm_phases[2] - sum_t_comm_comps[2], total_get_time_2stage, total_acc_time_2stage);
 
@@ -466,16 +510,16 @@ int main(int argc, char *argv[])
         COLL_ITER = atoi(argv[9]);
     }
 
-    if(argc >= 11){
+    if(argc >= 11) {
         DLEN = atoi(argv[10]);
         SUB_DLEN = atoi(argv[11]);
     }
 
-    if(argc >= 13){
+    if(argc >= 13) {
         WOKERS = atoi(argv[12]);
     }
 
-    if(argc >= 14){
+    if(argc >= 14) {
         COMPT = atoi(argv[13]);
     }
 
@@ -491,7 +535,7 @@ int main(int argc, char *argv[])
         run_iteration();
     }
 
-  exit:
+exit:
     target_computation_destroy();
     MPI_Type_free(&target_type);
     free(locbuf);
