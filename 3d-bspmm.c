@@ -227,8 +227,9 @@ static int run_iteration()
                 for (dst = 0; dst < WOKERS; dst++) {
                     int real_dst;
                     if(dst >= nprocs){
-                        int dstnode = dst % CORE_PER_NODE;
+                        static int dstnode = 0;
                         real_dst = dstnode * local_nprocs + rand() % local_nprocs;
+                        dstnode += 1;
                     }
                     else
                         real_dst = dst;
@@ -247,8 +248,9 @@ static int run_iteration()
                 for (dst = 0; dst < WOKERS; dst++) {
                     int real_dst;
                     if(dst >= nprocs){
-                        int dstnode = dst % CORE_PER_NODE;
+                        static int dstnode = 0;
                         real_dst = dstnode * local_nprocs + rand() % local_nprocs;
+                        dstnode += 1;
                     }
                     else
                         real_dst = dst;
