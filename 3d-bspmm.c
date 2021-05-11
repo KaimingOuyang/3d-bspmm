@@ -189,6 +189,9 @@ static int run_iteration()
     }
     MPI_Win_free(&win);
 
+    double get_time_stage1 = 0.0, get_time_stage2 = 0.0;
+    double acc_time_stage1 = 0.0, acc_time_stage2 = 0.0;
+    double cur_get_time, cur_acc_time;
     /* start */
     t0 = MPI_Wtime();
     for (wx = 0; wx < NWINS; wx++) {
@@ -233,10 +236,13 @@ static int run_iteration()
                     }
                     else
                         real_dst = dst;
+                    
+                    cur_get_time -= MPI_Wtime();
                     for (i = 0; i < nop; i++) {
                         MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
                         MPI_Win_flush(real_dst, win);
                     }
+                    cur_get_time += MPI_Wtime();
                 }
 
                 for(i = 0; i< COMPT; ++i)
@@ -254,11 +260,14 @@ static int run_iteration()
                     }
                     else
                         real_dst = dst;
+
+                    cur_acc_time -= MPI_Wtime();
                     for (i = 0; i < nop; i++) {
                         MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
                                        win);
                         MPI_Win_flush(real_dst, win);
                     }
+                    cur_acc_time += MPI_Wtime();
                 }
             }
 
@@ -275,11 +284,15 @@ static int run_iteration()
                 t_comp_phase += (MPI_Wtime() - st0);
                 t_comp_comp += t_comp;
                 t_comp = 0.0;
+                get_time_stage1 += cur_get_time;
+                acc_time_stage1 += cur_acc_time;
             }
             else {      /* heavy comm */
                 t_comm_phase += (MPI_Wtime() - st0);
                 t_comm_comp += t_comp;
                 t_comp = 0.0;
+                get_time_stage2 += cur_get_time;
+                acc_time_stage2 += cur_acc_time;
             }
 
 #if defined(OUTPUT_ALL_PHASES)
@@ -311,6 +324,20 @@ static int run_iteration()
     MPI_Reduce(&t_comm_phase, &sum_t_comm_phases[2], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Reduce(&t_comp_comp, &sum_t_comp_comps[2], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Reduce(&t_comm_comp, &sum_t_comm_comps[2], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    double total_get_time_1stage, total_acc_time_1stage;
+    double total_get_time_2stage, total_acc_time_2stage;
+    MPI_Reduce(&get_time_stage1, &total_get_time_1stage, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&acc_time_stage1, &total_acc_time_1stage, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    total_get_time_1stage /= nprocs;
+    total_acc_time_1stage /= nprocs;
+
+    MPI_Reduce(&get_time_stage2, &total_get_time_2stage, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&acc_time_stage2, &total_acc_time_2stage, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    total_get_time_2stage /= nprocs;
+    total_acc_time_2stage /= nprocs;
 
     if (rank == 0) {
         char header[256];
@@ -355,10 +382,10 @@ static int run_iteration()
         sprintf(header, "orig");
 #endif
         // total_time phase1_total phase2_total phase1_compute phase2_compute
-        fprintf(stdout, "%.2lf %.2lf %.2lf %.2lf %.2lf\n",
-                sum_total_times[2],
-                sum_t_comp_phases[2],
-                sum_t_comm_phases[2], sum_t_comp_comps[2], sum_t_comm_comps[2]);
+        fprintf(stdout, "1 %.3lf %.3lf %.3lf %.3lf %.3lf\n"
+                        "2 %.3lf %.3lf %.3lf %.3lf %.3lf\n",
+                sum_t_comp_phases[2], sum_t_comp_comps[2], sum_t_comp_phases[2] - sum_t_comp_comps[2], total_get_time_1stage, total_acc_time_1stage,
+                sum_t_comm_phases[2], sum_t_comm_comps[2], sum_t_comm_phases[2] - sum_t_comm_comps[2], total_get_time_2stage, total_acc_time_2stage);
 
         // fprintf(stdout,
         //         "%s: nprocs %d MS %d %d ML %d %d num_op_s %d num_op_l %d "
