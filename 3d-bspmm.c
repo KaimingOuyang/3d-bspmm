@@ -228,11 +228,7 @@ static int run_iteration()
                     int real_dst;
                     if(dst >= nprocs){
                         int dstnode = dst % CORE_PER_NODE;
-                        int real_dstnode;
-                        do {    
-                            real_dst = rand() % nprocs;
-                            real_dstnode = real_dst % local_nprocs;
-                        }while(real_dstnode != dstnode);
+                        real_dst = dstnode * local_nprocs + rand() % local_nprocs;
                     }
                     else
                         real_dst = dst;
@@ -252,11 +248,7 @@ static int run_iteration()
                     int real_dst;
                     if(dst >= nprocs){
                         int dstnode = dst % CORE_PER_NODE;
-                        int real_dstnode;
-                        do {    
-                            real_dst = rand() % nprocs;
-                            real_dstnode = real_dst % local_nprocs;
-                        }while(real_dstnode != dstnode);
+                        real_dst = dstnode * local_nprocs + rand() % local_nprocs;
                     }
                     else
                         real_dst = dst;
@@ -381,7 +373,7 @@ static int run_iteration()
 #else
         sprintf(header, "orig");
 #endif
-        // total_time phase1_total phase2_total phase1_compute phase2_compute
+        // total_time phase_total phase_compute phase_comm phase_get phase_acc
         fprintf(stdout, "1 %.3lf %.3lf %.3lf %.3lf %.3lf\n"
                         "2 %.3lf %.3lf %.3lf %.3lf %.3lf\n",
                 sum_t_comp_phases[2], sum_t_comp_comps[2], sum_t_comp_phases[2] - sum_t_comp_comps[2], total_get_time_1stage, total_acc_time_1stage,
