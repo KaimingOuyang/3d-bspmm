@@ -53,7 +53,7 @@ int rank = 0, nprocs = 0;
 int shm_rank = 0, shm_nprocs = 0;
 MPI_Win win = MPI_WIN_NULL;
 
-int WOKERS;
+int WORKERS;
 int PHASE_ITER = 10, COLL_ITER = 50, SKIP = 10, NWINS = 2;
 int NOP_L_MAX = 16, NOP_L_MIN = 16, NOP_L_ITER = 2, NOP_S = 1, NOP_L = 1;
 int MS = 1, ML = 100;           /* total problem size */
@@ -223,14 +223,14 @@ static int run_iteration()
                 comm_pcnt++;
             }
 
-            int real_nop = WORKER * nop * (rank + 1) / nprocs - WORKER * nop * rank / nprocs;
+            int real_nop = WORKERS * nop * (rank + 1) / nprocs - WORKERS * nop * rank / nprocs;
 
             for (x = 0; x < COLL_ITER; x += 1) {
                 if(local_rank == 0){
                     printf("rank %d - phase %d, coll %d, get\n", rank, px, x);
                     fflush(stdout);
                 }
-                for (dst = 0; dst < WOKERS; dst++) {
+                for (dst = 0; dst < WORKERS; dst++) {
                     int real_dst;
                     if(dst >= nprocs) {
                         static int dstnode = 0;
@@ -259,7 +259,7 @@ static int run_iteration()
                     printf("rank %d - phase %d, coll %d, acc\n", rank, px, x);
                     fflush(stdout);
                 }
-                for (dst = 0; dst < WOKERS; dst++) {
+                for (dst = 0; dst < WORKERS; dst++) {
                     int real_dst;
                     if(dst >= nprocs) {
                         static int dstnode = 0;
@@ -449,7 +449,7 @@ int main(int argc, char *argv[])
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    WOKERS = nprocs;
+    WORKERS = nprocs;
     srand(nprocs);
     // NOP_S NOP_L_MIN NOP_L_MAX NOP_L_ITER MS ML NWINS PHASE_ITER COLL_ITER
     if (nprocs < 2) {
@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
     }
 
     if(argc >= 13) {
-        WOKERS = atoi(argv[12]);
+        WORKERS = atoi(argv[12]);
     }
 
     if(argc >= 14) {
