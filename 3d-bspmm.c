@@ -226,7 +226,7 @@ static int run_iteration()
             int real_nop = WORKERS * nop * (rank + 1) / nprocs - WORKERS * nop * rank / nprocs;
 
             for (x = 0; x < COLL_ITER; x += 1) {
-                if(local_rank == 0){
+                if(rank == 0){
                     printf("rank %d - phase %d, coll %d, get\n", rank, px, x);
                     fflush(stdout);
                 }
@@ -248,14 +248,14 @@ static int run_iteration()
                     cur_get_time += MPI_Wtime();
                 }
 
-                if(local_rank == 0){
+                if(rank == 0){
                     printf("rank %d - phase %d, coll %d, comp\n", rank, px, x);
                     fflush(stdout);
                 }
                 for(i = 0; i< COMPT; ++i)
                     target_computation();
 
-                if(local_rank == 0){
+                if(rank == 0){
                     printf("rank %d - phase %d, coll %d, acc\n", rank, px, x);
                     fflush(stdout);
                 }
