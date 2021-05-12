@@ -212,7 +212,6 @@ static int run_iteration()
 
         for (px = 0; px < PHASE_ITER; px += 1) {
             st0 = MPI_Wtime();
-
             if (px < PHASE_ITER / 2) {  /* heavy comp */
                 target_computation_set_size(ML, ML, ML);
                 nop = NOP_S;
@@ -224,7 +223,13 @@ static int run_iteration()
                 comm_pcnt++;
             }
 
+            int real_nop = WORKER * nop * (rank + 1) / nprocs - WORKER * nop * rank / nprocs;
+
             for (x = 0; x < COLL_ITER; x += 1) {
+                if(local_rank == 0){
+                    printf("rank %d - phase %d, coll %d, get\n", rank, px, x);
+                    fflush(stdout);
+                }
                 for (dst = 0; dst < WOKERS; dst++) {
                     int real_dst;
                     if(dst >= nprocs) {
@@ -236,37 +241,24 @@ static int run_iteration()
                         real_dst = dst;
 
                     cur_get_time -= MPI_Wtime();
-                    for (i = 0; i < nop; i++) {
+                    for (i = 0; i < real_nop; i++) {
                         MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
                         MPI_Win_flush(real_dst, win);
                     }
                     cur_get_time += MPI_Wtime();
                 }
 
-                /* for casper and async */
-                if(local_rank < (CORE_PER_NODE - local_nprocs)) {
-                    for (dst = 0; dst < WOKERS; dst++) {
-                        int real_dst;
-                        if(dst >= nprocs) {
-                            static int dstnode = 0;
-                            real_dst = dstnode * local_nprocs + rand() % local_nprocs;
-                            dstnode = (dstnode + 1) % nnode;
-                        }
-                        else
-                            real_dst = dst;
-
-                        cur_get_time -= MPI_Wtime();
-                        for (i = 0; i < nop; i++) {
-                            MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
-                            MPI_Win_flush(real_dst, win);
-                        }
-                        cur_get_time += MPI_Wtime();
-                    }
+                if(local_rank == 0){
+                    printf("rank %d - phase %d, coll %d, comp\n", rank, px, x);
+                    fflush(stdout);
                 }
-
                 for(i = 0; i< COMPT; ++i)
                     target_computation();
 
+                if(local_rank == 0){
+                    printf("rank %d - phase %d, coll %d, acc\n", rank, px, x);
+                    fflush(stdout);
+                }
                 for (dst = 0; dst < WOKERS; dst++) {
                     int real_dst;
                     if(dst >= nprocs) {
@@ -278,34 +270,12 @@ static int run_iteration()
                         real_dst = dst;
 
                     cur_acc_time -= MPI_Wtime();
-                    for (i = 0; i < nop; i++) {
+                    for (i = 0; i < real_nop; i++) {
                         MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
                                        win);
                         MPI_Win_flush(real_dst, win);
                     }
                     cur_acc_time += MPI_Wtime();
-                }
-
-                /* for casper and async */
-                if(local_rank < (CORE_PER_NODE - local_nprocs)) {
-                    for (dst = 0; dst < WOKERS; dst++) {
-                        int real_dst;
-                        if(dst >= nprocs) {
-                            static int dstnode = 0;
-                            real_dst = dstnode * local_nprocs + rand() % local_nprocs;
-                            dstnode = (dstnode + 1) % nnode;
-                        }
-                        else
-                            real_dst = dst;
-
-                        cur_acc_time -= MPI_Wtime();
-                        for (i = 0; i < nop; i++) {
-                            MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
-                                           win);
-                            MPI_Win_flush(real_dst, win);
-                        }
-                        cur_acc_time += MPI_Wtime();
-                    }
                 }
             }
 
