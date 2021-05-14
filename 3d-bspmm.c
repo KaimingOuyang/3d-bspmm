@@ -164,7 +164,8 @@ static int run_iteration()
     MPI_Info_create(&win_info);
     MPI_Info_create(&async_info);
 
-    MPI_Info_set(win_info, (char *) "epoch_type", (char *) "lockall|fence");
+    // MPI_Info_set(win_info, (char *) "epoch_type", (char *) "lockall|fence");
+    MPI_Info_set(win_info, (char *) "epochs_used", (char *) "lockall|fence");
     MPI_Info_set(async_info, (char *) "symmetric", (char *) "true");
 
 #if defined(DISABLE_SHM)
