@@ -193,7 +193,7 @@ static int run_iteration()
 
     double get_time_stage1 = 0.0, get_time_stage2 = 0.0;
     double acc_time_stage1 = 0.0, acc_time_stage2 = 0.0;
-    double cur_get_time, cur_acc_time;
+    
     /* start */
     t0 = MPI_Wtime();
     for (wx = 0; wx < NWINS; wx++) {
@@ -211,6 +211,7 @@ static int run_iteration()
         MPI_Win_fence(0, win);
         MPI_Win_lock_all(0, win);
 
+        double cur_get_time = 0.0, cur_acc_time = 0.0;
         for (px = 0; px < PHASE_ITER; px += 1) {
             st0 = MPI_Wtime();
             if (px < PHASE_ITER / 2) {  /* heavy comp */
