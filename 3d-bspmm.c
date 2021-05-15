@@ -243,7 +243,7 @@ static int run_iteration()
                             MPI_Win_flush(real_dst, win);
                         }
                         cur_get_time += MPI_Wtime();
-                        real_dst = (rank + local_nprocs) % nprocs;
+                        real_dst = (real_dst + local_nprocs) % nprocs;
                     } while(real_dst != rank);
                 } else {
                     for (dst = 0; dst < WORKERS; dst++) {
@@ -287,7 +287,7 @@ static int run_iteration()
                             MPI_Win_flush(real_dst, win);
                         }
                         cur_acc_time += MPI_Wtime();
-                        real_dst = (rank + local_nprocs) % nprocs;
+                        real_dst = (real_dst + local_nprocs) % nprocs;
                     } while(real_dst != rank);
                 } else {
                     for (dst = 0; dst < WORKERS; dst++) {
