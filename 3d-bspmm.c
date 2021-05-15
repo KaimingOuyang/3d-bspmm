@@ -193,7 +193,7 @@ static int run_iteration()
 
     double get_time_stage1 = 0.0, get_time_stage2 = 0.0;
     double acc_time_stage1 = 0.0, acc_time_stage2 = 0.0;
-    
+
     /* start */
     t0 = MPI_Wtime();
     for (wx = 0; wx < NWINS; wx++) {
@@ -228,56 +228,86 @@ static int run_iteration()
             int real_nop = WORKERS * nop * (rank + 1) / nprocs - WORKERS * nop * rank / nprocs;
 
             for (x = 0; x < COLL_ITER; x += 1) {
-                if(rank == 0){
+                if(rank == 0) {
                     printf("rank %d - phase %d, coll %d, get\n", rank, px, x);
                     fflush(stdout);
                 }
-                for (dst = 0; dst < WORKERS; dst++) {
-                    int real_dst;
-                    if(dst >= nprocs) {
-                        static int dstnode = 0;
-                        real_dst = dstnode * local_nprocs + rand() % local_nprocs;
-                        dstnode = (dstnode + 1) % nnode;
-                    }
-                    else
-                        real_dst = dst;
 
-                    cur_get_time -= MPI_Wtime();
-                    for (i = 0; i < real_nop; i++) {
-                        MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
-                        MPI_Win_flush(real_dst, win);
+                int step;
+                if(px < PHASE_ITER / 2) {
+                    int real_dst = (rank + local_nprocs) % nprocs;
+                    do {
+                        cur_get_time -= MPI_Wtime();
+                        for (i = 0; i < real_nop; i++) {
+                            MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
+                            MPI_Win_flush(real_dst, win);
+                        }
+                        cur_get_time += MPI_Wtime();
+                        real_dst = (rank + local_nprocs) % nprocs;
+                    } while(real_dst != rank);
+                } else {
+                    for (dst = 0; dst < WORKERS; dst++) {
+                        int real_dst;
+                        if(dst >= nprocs) {
+                            static int dstnode = 0;
+                            real_dst = dstnode * local_nprocs + rand() % local_nprocs;
+                            dstnode = (dstnode + 1) % nnode;
+                        }
+                        else
+                            real_dst = dst;
+
+                        cur_get_time -= MPI_Wtime();
+                        for (i = 0; i < real_nop; i++) {
+                            MPI_Get(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, win);
+                            MPI_Win_flush(real_dst, win);
+                        }
+                        cur_get_time += MPI_Wtime();
                     }
-                    cur_get_time += MPI_Wtime();
                 }
 
-                if(rank == 0){
+                if(rank == 0) {
                     printf("rank %d - phase %d, coll %d, comp\n", rank, px, x);
                     fflush(stdout);
                 }
                 for(i = 0; i< COMPT; ++i)
                     target_computation();
 
-                if(rank == 0){
+                if(rank == 0) {
                     printf("rank %d - phase %d, coll %d, acc\n", rank, px, x);
                     fflush(stdout);
                 }
-                for (dst = 0; dst < WORKERS; dst++) {
-                    int real_dst;
-                    if(dst >= nprocs) {
-                        static int dstnode = 0;
-                        real_dst = dstnode * local_nprocs + rand() % local_nprocs;
-                        dstnode = (dstnode + 1) % nnode;
-                    }
-                    else
-                        real_dst = dst;
+                
+                if(px < PHASE_ITER / 2) {
+                    int real_dst = (rank + local_nprocs) % nprocs;
+                    do {
+                        cur_acc_time -= MPI_Wtime();
+                        for (i = 0; i < real_nop; i++) {
+                            MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
+                                           win);
+                            MPI_Win_flush(real_dst, win);
+                        }
+                        cur_acc_time += MPI_Wtime();
+                        real_dst = (rank + local_nprocs) % nprocs;
+                    } while(real_dst != rank);
+                } else {
+                    for (dst = 0; dst < WORKERS; dst++) {
+                        int real_dst;
+                        if(dst >= nprocs) {
+                            static int dstnode = 0;
+                            real_dst = dstnode * local_nprocs + rand() % local_nprocs;
+                            dstnode = (dstnode + 1) % nnode;
+                        }
+                        else
+                            real_dst = dst;
 
-                    cur_acc_time -= MPI_Wtime();
-                    for (i = 0; i < real_nop; i++) {
-                        MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
-                                       win);
-                        MPI_Win_flush(real_dst, win);
+                        cur_acc_time -= MPI_Wtime();
+                        for (i = 0; i < real_nop; i++) {
+                            MPI_Accumulate(locbuf, BUFSIZE, MPI_DOUBLE, real_dst, 0, 1, target_type, MPI_SUM,
+                                           win);
+                            MPI_Win_flush(real_dst, win);
+                        }
+                        cur_acc_time += MPI_Wtime();
                     }
-                    cur_acc_time += MPI_Wtime();
                 }
             }
 
@@ -436,7 +466,7 @@ static void create_datatype(void)
     sizes[0] = sizes[1] = sizes[2] = DLEN;
     subsizes[0] = subsizes[1] = subsizes[2] = SUB_DLEN;
     starts[0] = starts[1] = starts[2] = 1;
-    
+
     // MPI_Type_contiguous(BUFSIZE, MPI_DOUBLE, &target_type);
     MPI_Type_create_subarray(3, sizes, subsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &target_type);
     MPI_Type_commit(&target_type);
