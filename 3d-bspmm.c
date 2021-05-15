@@ -437,8 +437,8 @@ static void create_datatype(void)
     subsizes[0] = subsizes[1] = subsizes[2] = SUB_DLEN;
     starts[0] = starts[1] = starts[2] = 1;
     
-    MPI_Type_contiguous(BUFSIZE, MPI_DOUBLE, &target_type);
-    // MPI_Type_create_subarray(3, sizes, subsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &target_type);
+    // MPI_Type_contiguous(BUFSIZE, MPI_DOUBLE, &target_type);
+    MPI_Type_create_subarray(3, sizes, subsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &target_type);
     MPI_Type_commit(&target_type);
 
     MPI_Type_get_extent(target_type, &lb, &target_ext);
