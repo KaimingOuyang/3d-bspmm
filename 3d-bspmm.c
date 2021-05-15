@@ -41,7 +41,8 @@
 
 int DLEN = 4;
 int SUB_DLEN = 2;
-int COMPT = 1;
+int COMPTS = 1;
+int COMPTL = 1;
 /* 3D matrix on target window */
 #define WINSIZE (DLEN*DLEN*DLEN)
 /* Local 3D submatrix */
@@ -108,8 +109,6 @@ static void target_computation(void)
 
     if (m > 0 && k > 0 && n > 0) {
         /* reset data */
-
-
         cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
                     m, n, k, alpha, A, k, B, n, beta, C, n);
     }
@@ -233,8 +232,8 @@ static int run_iteration()
                     fflush(stdout);
                 }
 
-                int step;
                 if(px < PHASE_ITER / 2) {
+                    int step = 2;
                     int real_dst = (rank + local_nprocs) % nprocs;
                     do {
                         cur_get_time -= MPI_Wtime();
@@ -244,7 +243,8 @@ static int run_iteration()
                         }
                         cur_get_time += MPI_Wtime();
                         real_dst = (real_dst + local_nprocs) % nprocs;
-                    } while(real_dst != rank);
+                        step--;
+                    } while(step != 0);
                 } else {
                     for (dst = 0; dst < WORKERS; dst++) {
                         int real_dst;
@@ -269,8 +269,14 @@ static int run_iteration()
                     printf("rank %d - phase %d, coll %d, comp\n", rank, px, x);
                     fflush(stdout);
                 }
-                for(i = 0; i< COMPT; ++i)
-                    target_computation();
+
+                if(px < PHASE_ITER / 2){
+                    for(i = 0; i< COMPTL; ++i)
+                        target_computation();
+                }else{
+                    for(i = 0; i< COMPTS; ++i)
+                        target_computation();
+                }
 
                 if(rank == 0) {
                     printf("rank %d - phase %d, coll %d, acc\n", rank, px, x);
@@ -278,6 +284,7 @@ static int run_iteration()
                 }
                 
                 if(px < PHASE_ITER / 2) {
+                    int step = 2;
                     int real_dst = (rank + local_nprocs) % nprocs;
                     do {
                         cur_acc_time -= MPI_Wtime();
@@ -288,7 +295,8 @@ static int run_iteration()
                         }
                         cur_acc_time += MPI_Wtime();
                         real_dst = (real_dst + local_nprocs) % nprocs;
-                    } while(real_dst != rank);
+                        step--;
+                    } while(step != 0);
                 } else {
                     for (dst = 0; dst < WORKERS; dst++) {
                         int real_dst;
@@ -523,7 +531,8 @@ int main(int argc, char *argv[])
     }
 
     if(argc >= 14) {
-        COMPT = atoi(argv[13]);
+        COMPTS = atoi(argv[13]);
+        COMPTL = atoi(argv[14]);
     }
 
     /* initialize local buffer */
