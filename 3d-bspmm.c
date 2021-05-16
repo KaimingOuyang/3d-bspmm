@@ -501,43 +501,43 @@ int main(int argc, char *argv[])
         goto exit;
     }
 
-    if (argc == 4) {
+    if (argc >= 4) {
         NOP_S = atoi(argv[1]);
         NOP_L = atoi(argv[2]);
         ITERATION = atoi(argv[3]);
     }
-    if (argc == 6) {
+    if (argc >= 6) {
         MS = atoi(argv[4]);
         ML = atoi(argv[5]);
     }
 
-    if (argc == 7) {
+    if (argc >= 7) {
         NWINS = atoi(argv[6]);
     }
 
-    if (argc == 8) {
+    if (argc >= 8) {
         PHASE_ITER = atoi(argv[7]);
     }
 
-    if (argc == 9) {
+    if (argc >= 9) {
         COLL_ITER = atoi(argv[8]);
     }
 
-    if(argc == 11) {
+    if(argc >= 11) {
         DLEN = atoi(argv[9]);
         SUB_DLEN = atoi(argv[10]);
     }
 
-    if(argc == 12) {
+    if(argc >= 12) {
         WORKERS = atoi(argv[11]);
     }
 
-    if(argc == 14) {
+    if(argc >= 14) {
         COMPTS = atoi(argv[12]);
         COMPTL = atoi(argv[13]);
     }
 
-    if(argc == 15) {
+    if(argc >= 15) {
         STEP = atoi(argv[14]);
     }
 
