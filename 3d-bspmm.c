@@ -55,6 +55,7 @@ int shm_rank = 0, shm_nprocs = 0;
 MPI_Win win = MPI_WIN_NULL;
 
 int WORKERS;
+int ITERATION = 1;
 int PHASE_ITER = 10, COLL_ITER = 50, SKIP = 10, NWINS = 2;
 int NOP_L_MAX = 16, NOP_L_MIN = 16, NOP_L_ITER = 2, NOP_S = 1, NOP_L = 1;
 int MS = 1, ML = 100;           /* total problem size */
@@ -498,41 +499,40 @@ int main(int argc, char *argv[])
         goto exit;
     }
 
-    if (argc >= 5) {
+    if (argc == 4) {
         NOP_S = atoi(argv[1]);
-        NOP_L_MIN = atoi(argv[2]);
-        NOP_L_MAX = atoi(argv[3]);
-        NOP_L_ITER = atoi(argv[4]);
+        NOP_L = atoi(argv[2]);
+        ITERATION = atoi(argv[3]);
     }
-    if (argc >= 7) {
-        MS = atoi(argv[5]);
-        ML = atoi(argv[6]);
-    }
-
-    if (argc >= 8) {
-        NWINS = atoi(argv[7]);
+    if (argc == 6) {
+        MS = atoi(argv[4]);
+        ML = atoi(argv[5]);
     }
 
-    if (argc >= 9) {
-        PHASE_ITER = atoi(argv[8]);
+    if (argc == 7) {
+        NWINS = atoi(argv[6]);
     }
 
-    if (argc >= 10) {
-        COLL_ITER = atoi(argv[9]);
+    if (argc == 8) {
+        PHASE_ITER = atoi(argv[7]);
     }
 
-    if(argc >= 11) {
-        DLEN = atoi(argv[10]);
-        SUB_DLEN = atoi(argv[11]);
+    if (argc == 9) {
+        COLL_ITER = atoi(argv[8]);
     }
 
-    if(argc >= 13) {
-        WORKERS = atoi(argv[12]);
+    if(argc == 11) {
+        DLEN = atoi(argv[9]);
+        SUB_DLEN = atoi(argv[10]);
     }
 
-    if(argc >= 14) {
-        COMPTS = atoi(argv[13]);
-        COMPTL = atoi(argv[14]);
+    if(argc == 12) {
+        WORKERS = atoi(argv[11]);
+    }
+
+    if(argc == 14) {
+        COMPTS = atoi(argv[12]);
+        COMPTL = atoi(argv[13]);
     }
 
     /* initialize local buffer */
@@ -543,7 +543,7 @@ int main(int argc, char *argv[])
     target_computation_init();
     create_datatype();
 
-    for (NOP_L = NOP_L_MIN; NOP_L <= NOP_L_MAX; NOP_L *= NOP_L_ITER) {
+    for (i = 0; i < ITERATION; i++) {
         run_iteration();
     }
 
