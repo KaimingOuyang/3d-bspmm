@@ -64,6 +64,8 @@ MPI_Datatype target_type = MPI_DATATYPE_NULL;
 int target_size = 0;
 MPI_Aint target_ext = 0;
 
+int STEP = 1;
+
 double *A, *B, *C;
 int m, n, k;                    /* local size */
 double t_comp = 0.0;
@@ -234,7 +236,7 @@ static int run_iteration()
                 }
 
                 if(px < PHASE_ITER / 2) {
-                    int step = 2;
+                    int step = STEP;
                     int real_dst = (rank + local_nprocs) % nprocs;
                     do {
                         cur_get_time -= MPI_Wtime();
@@ -285,7 +287,7 @@ static int run_iteration()
                 }
                 
                 if(px < PHASE_ITER / 2) {
-                    int step = 2;
+                    int step = STEP;
                     int real_dst = (rank + local_nprocs) % nprocs;
                     do {
                         cur_acc_time -= MPI_Wtime();
@@ -533,6 +535,10 @@ int main(int argc, char *argv[])
     if(argc == 14) {
         COMPTS = atoi(argv[12]);
         COMPTL = atoi(argv[13]);
+    }
+
+    if(argc == 15) {
+        STEP = atoi(argv[14]);
     }
 
     /* initialize local buffer */
